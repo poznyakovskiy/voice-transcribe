@@ -5,8 +5,8 @@ import ffmpeg
 import os
 import glob
 
-input_folder = '~/Google Drive/My Drive/Audio Notes'
-output_folder = '/Users/anton/Documents/Transcribed Notes'
+input_folder = '/data/GDrive/Audio Notes'
+output_folder = '~/Documents/Transcribed Notes'
 
 model = Model("vosk-model-ru-0.42")
 recognizer = KaldiRecognizer(model, 16000)
