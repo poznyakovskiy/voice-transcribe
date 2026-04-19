@@ -1,4 +1,5 @@
 from vosk import Model, KaldiRecognizer
+from os.path import expanduser
 import wave
 import json
 import ffmpeg
@@ -6,19 +7,25 @@ import os
 import glob
 
 input_folder = '/data/GDrive/Audio Notes'
-output_folder = '~/Documents/Transcribed Notes'
+output_folder = expanduser('~/Documents/Transcribed Notes')
 
 model = Model("vosk-model-ru-0.42")
 recognizer = KaldiRecognizer(model, 16000)
 
 def convert_to_wav(input_path, output_path):
-    (
-        ffmpeg
-        .input(input_path)
-        .output(output_path, acodec='pcm_s16le', ac=1, ar='16000')
-        .overwrite_output()
-        .run(quiet=True)
-    )
+    try:
+        (
+            ffmpeg
+            .input(input_path)
+            .output(output_path, acodec='pcm_s16le', ac=1, ar='16000')
+            .overwrite_output()
+            .run(quiet=True)
+        )
+    except ffmpeg.Error as e:
+        print(f"Ошибка при конвертации {input_path}:")
+        print("STDOUT:", e.stdout.decode(errors='ignore'))
+        print("STDERR:", e.stderr.decode(errors='ignore'))
+        raise
 
 audio_files = glob.glob(os.path.join(os.path.expanduser(input_folder), '*.m4a'))
 
@@ -39,7 +46,6 @@ for audio_path in audio_files:
     try:
       convert_to_wav(audio_path, wav_path)
     except ffmpeg.Error as e:
-        print(f"Ошибка при конвертации {audio_path}: {e}")
         continue
 
     wf = wave.open(wav_path, "rb")
