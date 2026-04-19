@@ -1,18 +1,12 @@
 from vosk import Model, KaldiRecognizer
-from os.path import expanduser
 import wave
 import json
 import ffmpeg
 import os
-import glob
-
-input_folder = '/data/GDrive/Audio Notes'
-output_folder = expanduser('~/Documents/Transcribed Notes')
 
 model = Model("vosk-model-ru-0.42")
-recognizer = KaldiRecognizer(model, 16000)
 
-def convert_to_wav(input_path, output_path):
+def _convert_to_wav(input_path, output_path):
     try:
         (
             ffmpeg
@@ -22,41 +16,41 @@ def convert_to_wav(input_path, output_path):
             .run(quiet=True)
         )
     except ffmpeg.Error as e:
-        print(f"Ошибка при конвертации {input_path}:")
+        print(f"Conversion error for {input_path}:")
         print("STDOUT:", e.stdout.decode(errors='ignore'))
         print("STDERR:", e.stderr.decode(errors='ignore'))
         raise
 
-audio_files = glob.glob(os.path.join(os.path.expanduser(input_folder), '*.m4a'))
 
-print("Файлы для обработки:")
-for f in audio_files:
-    print(f)
+def transcribe_file(audio_path, output_folder):
+    """Transcribe a single audio file and save the result as a .txt in output_folder.
 
-for audio_path in audio_files:
+    Skips processing if the .txt already exists.
+    Returns the transcribed text string.
+    """
     base_name = os.path.splitext(os.path.basename(audio_path))[0]
     txt_path = os.path.join(output_folder, f'{base_name}.txt')
 
     if os.path.exists(txt_path):
-        continue
+        with open(txt_path, encoding='utf-8') as f:
+            return f.read()
 
+    os.makedirs(output_folder, exist_ok=True)
     wav_path = os.path.join(output_folder, f'{base_name}.wav')
 
-    print(f"Обрабатываю: {audio_path}")
-    try:
-      convert_to_wav(audio_path, wav_path)
-    except ffmpeg.Error as e:
-        continue
+    _convert_to_wav(audio_path, wav_path)
 
-    wf = wave.open(wav_path, "rb")
-    recognizer.AcceptWaveform(wf.readframes(wf.getnframes()))
-    result = json.loads(recognizer.FinalResult())
-    text = result.get("text", "")
+    try:
+        recognizer = KaldiRecognizer(model, 16000)
+        wf = wave.open(wav_path, "rb")
+        recognizer.AcceptWaveform(wf.readframes(wf.getnframes()))
+        wf.close()
+        text = json.loads(recognizer.FinalResult()).get("text", "")
+    finally:
+        if os.path.exists(wav_path):
+            os.remove(wav_path)
 
     with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(text)
 
-    print(f"Сохранено: {txt_path}")
-    os.remove(wav_path)
-
-print("Готово.")
+    return text

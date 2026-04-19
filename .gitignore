@@ -2,3 +2,4 @@
 .venv/
 vosk-*/
 *.zip
+__pycache__/
