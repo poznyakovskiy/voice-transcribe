@@ -1,10 +1,8 @@
-from vosk import Model, KaldiRecognizer
+from vosk import KaldiRecognizer
 import wave
 import json
 import ffmpeg
 import os
-
-model = Model("vosk-model-ru-0.42")
 
 def _convert_to_wav(input_path, output_path):
     try:
@@ -22,16 +20,16 @@ def _convert_to_wav(input_path, output_path):
         raise
 
 
-def transcribe_file(audio_path, output_folder):
+def transcribe_file(audio_path, output_folder, model, overwrite=False):
     """Transcribe a single audio file and save the result as a .txt in output_folder.
 
-    Skips processing if the .txt already exists.
+    Skips processing if the .txt already exists unless overwrite is True.
     Returns the transcribed text string.
     """
     base_name = os.path.splitext(os.path.basename(audio_path))[0]
     txt_path = os.path.join(output_folder, f'{base_name}.txt')
 
-    if os.path.exists(txt_path):
+    if os.path.exists(txt_path) and not overwrite:
         with open(txt_path, encoding='utf-8') as f:
             return f.read()
 
